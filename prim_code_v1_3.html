@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Satış Primi Hesaplama</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: center;
+        }
+        button {
+            margin-top: 10px;
+            padding: 8px 12px;
+        }
+        .subtotal {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Satış Primi Hesaplama</h1>
+
+    <button onclick="addRegion()">Bölge Ekle</button>
+    <button onclick="calculateBonus()">Hesapla</button>
+    <button onclick="resetPage()">Temizle</button>
+
+    <div id="regions"></div>
+
+    <table id="resultsTable" style="display: none;">
+        <thead>
+            <tr>
+                <th>Bölge Adı</th>
+                <th>Temsilci Adı</th>
+                <th>Hedef</th>
+                <th>Gerçekleşen</th>
+                <th>Kişisel Prim</th>
+                <th>Ek Prim</th>
+                <th>Toplam Prim</th>
+            </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+    </table>
+
+    <script>
+        function addRegion() {
+            const regionDiv = document.createElement('div');
+            regionDiv.classList.add('region');
+            regionDiv.innerHTML = `
+                <h3>Bölge</h3>
+                <input type="text" placeholder="Bölge Adı" class="region-name">
+                <button onclick="addRepresentative(this)">Temsilci Ekle</button>
+                <div class="representatives"></div>
+            `;
+            document.getElementById('regions').appendChild(regionDiv);
+        }
+
+        function addRepresentative(button) {
+            const repDiv = document.createElement('div');
+            repDiv.classList.add('representative');
+            repDiv.innerHTML = `
+                <input type="text" placeholder="Temsilci Adı" class="rep-name">
+                <input type="number" placeholder="Hedef" class="rep-target" step="1000">
+                <input type="number" placeholder="Gerçekleşen" class="rep-achieved" step="1000">
+            `;
+            button.parentElement.querySelector('.representatives').appendChild(repDiv);
+        }
+
+        function calculateBonus() {
+            const resultsTable = document.getElementById('resultsTable');
+            const resultsBody = document.getElementById('resultsBody');
+            resultsBody.innerHTML = '';
+
+            document.querySelectorAll('.region').forEach(region => {
+                const regionName = region.querySelector('.region-name').value;
+                let regionTargetTotal = 0;
+                let regionAchievedTotal = 0;
+
+                const repsData = [];
+
+                // Bölgeye ait temsilcilerin hedef ve gerçekleşen değerlerini topla
+                region.querySelectorAll('.representative').forEach(rep => {
+                    const repName = rep.querySelector('.rep-name').value;
+                    const target = parseFloat(rep.querySelector('.rep-target').value) || 0;
+                    const achieved = parseFloat(rep.querySelector('.rep-achieved').value) || 0;
+                    regionTargetTotal += target;
+                    regionAchievedTotal += achieved;
+
+                    repsData.push({
+                        repName: repName,
+                        target: target,
+                        achieved: achieved
+                    });
+                });
+
+                // Ek Prim hesaplaması, bölge toplam hedefe %90 oranında ulaştıysa yapılır
+                let regionBonusQualified = regionAchievedTotal >= regionTargetTotal * 0.9;
+
+                repsData.forEach(rep => {
+                    let personalBonus = 0;
+                    let extraBonus = 0;
+
+                    if (rep.achieved >= rep.target * 0.9) {
+                        personalBonus = 15000;
+                    }
+
+                    if (regionBonusQualified) {
+                        extraBonus = rep.achieved * 0.01;
+                    }
+
+                    const totalBonus = personalBonus + extraBonus;
+
+                    resultsBody.innerHTML += `
+                        <tr>
+                            <td>${regionName}</td>
+                            <td>${rep.repName}</td>
+                            <td>${formatNumber(rep.target)}</td>
+                            <td>${formatNumber(rep.achieved)}</td>
+                            <td>${formatNumber(personalBonus)}</td>
+                            <td>${formatNumber(extraBonus)}</td>
+                            <td>${formatNumber(totalBonus)}</td>
+                        </tr>
+                    `;
+                });
+
+                // Ara toplam satırı ekle
+                resultsBody.innerHTML += `
+                    <tr class="subtotal">
+                        <td colspan="2">${regionName} Toplam</td>
+                        <td>${formatNumber(regionTargetTotal)}</td>
+                        <td>${formatNumber(regionAchievedTotal)}</td>
+                        <td colspan="3"></td>
+                    </tr>
+                `;
+            });
+
+            resultsTable.style.display = resultsBody.innerHTML ? 'table' : 'none';
+        }
+
+        function formatNumber(num) {
+            return Math.round(num).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        }
+
+        function resetPage() {
+            document.getElementById('regions').innerHTML = '';
+            document.getElementById('resultsBody').innerHTML = '';
+            document.getElementById('resultsTable').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
